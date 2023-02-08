@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>에프티랩 : 모니터링서비스</title>
+
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@500&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+	<style>
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+
+		ul,
+		li {
+			list-style: none;
+		}
+
+		a {
+			text-decoration: none;
+			color: inherit;
+		}
+
+		body {
+			font-size: 16px;
+			font-family: 'Gothic A1', sans-serif;
+		}
+
+		.wrap {
+			width: 100%;
+			height: 1080px;
+			background-color: #ededed;
+		}
+
+		header {
+			display: flex;
+			padding: 20px 20px 20px 20px;
+			justify-content: space-between;
+		}
+
+		h1 {
+			font-size: 25px;
+		}
+
+		h2 {
+			text-align: center;
+		}
+
+		#server_condition {
+			height: 110px;
+			text-align: center;
+			justify-content: space-between;
+		}
+
+		#server_condition>span {
+			width: 50%;
+			line-height: 110px;
+			font-size: 30px;
+			font-weight: bold;
+		}
+
+		.normal {
+			color: #379169;
+		}
+
+		.error {
+			color: #C64539;
+		}
+
+		.server_log_date {
+			width: 270px;
+			display: flex;
+			text-align: center;
+		}
+
+		.server_log_date>li {
+			width: 50%;
+			height: 40px;
+			line-height: 40px;
+			border: 1px solid #000;
+			cursor: pointer;
+			border-right: 0;
+		}
+
+		.server_log_date>.pick_day {
+			background-color: #000;
+			color: #fff;
+		}
+
+		.server_log_date>li:last-child {
+			border-right: 1px solid #000;
+		}
+
+		#list-count {
+			width: 100%;
+			display: flex;
+			height: 80px;
+			text-align: center;
+		}
+
+		p {
+			width: 50%;
+			border: 1px solid #ededed;
+			color: #454c53;
+			font-weight: bold;
+			line-height: 80px;
+			font-size: 21px;
+			background-color: #fff;
+		}
+
+		p:first-child {
+			border-right: 0;
+		}
+
+		.allCount {
+			color: #41659E;
+			font-size: 25px;
+		}
+
+		.nowCount {
+			color: #9E3121;
+			font-size: 25px;
+		}
+
+		#mark {
+			text-align: right;
+			font-size: 14px;
+			margin-left: -20px;
+			height: 30px;
+		}
+
+		.service_page {
+			display: flex;
+			padding: 0 20px 20px;
+			flex-wrap: wrap;
+			justify-content: space-between;
+			align-content: stretch(default);
+			width: 100%;
+			height: 800px;
+		}
+
+		.service_page_list {
+			padding: 0px 0px 50px;
+			width: 24%;
+			margin-top: 30px;
+			border: 1px solid #ededed;
+			/*height: 400px;*/
+		}
+
+		.list-item {
+			width: 100%;
+		}
+
+		.container {
+			padding: 10px 20px 30px;
+			background-color: #fff;
+			width: 100%;
+			height: 300px;
+			border: 10px;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="wrap">
+		<header id="ft_header">
+			<h1>FTLab Monitoring System</h1>
+		</header>
+		<!-- <p id="mark">* allCount / <span class="nowCount">nowCount</span></p> -->
+		<div class="service_page">
+			<div class="service_page_list"></div>
+			<div class="service_page_list"></div>
+			<div class="service_page_list"></div>
+			<div class="service_page_list"></div>
+			<div class="service_page_list"></div>
+			<div class="service_page_list"></div>
+			<div class="service_page_list"></div>
+			<div class="service_page_list"></div>
+		</div>
+	</div>
+	<!-- wrap finished -->
+	<script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.12.4.min.js"></script>
+	<script src="https://code.highcharts.com/highcharts.js"></script>
+	<script src="https://code.highcharts.com/modules/series-label.js"></script>
+	<script src="https://code.highcharts.com/modules/exporting.js"></script>
+	<script src="https://code.highcharts.com/modules/export-data.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.0/moment.min.js"></script>  
+
+	<script>
+
+
+
+		$(document).ready(function () {
+			var logArr = []; 
+			var startDate = moment().subtract(7, 'days').format('YYYY-MM-DD');
+			var endDate = moment().format('YYYY-MM-DD');
+			var serviceList = new Array();
+			var testValue = 0;
+			var seriesOptions = [];
+			var chart = null;
+			var lastDate
+			var day = 7
+			var todayString = "";
+			var updateString= "";
+			var title = ['RadonEye Pro',
+				'RDS',
+				'RadonEye CUBE',
+				'FS301',
+				'AQMAN',
+				'DWM101',
+				'RD200P',
+				'RD200P2'
+			]
+
+			var timeCount = 0
+			var url = ['https://ftlab-vm-api.com/api/pro/devices/monitor',
+				'https://ftlab-vm-api.com/api/rds/devices/monitor',
+				'https://ftlab-vm-api.com/api/cube/devices/monitor',
+				'https://radoneye-station.azurewebsites.net/api/monitor',//!! 안바꿔도됨
+				'https://ftlab-vm-api.com/api/rsv2/devices/monitor?type=0',
+				'https://ftlab-vm-api.com/api/rsv2/devices/monitor?type=1',
+				'https://ftlab-vm-api.com/api/rmns/devices/monitor?type=0',
+				'https://ftlab-vm-api.com/api/rmns/devices/monitor?type=1'
+			]
+			displayServerList()
+			setInterval(function () {
+				displayServerList()
+			}, 1000 * 60 * 10) // 10분 마다 업데이트
+
+			function displayServerList() {
+
+
+				var today = new Date();
+				var year = today.getFullYear();
+				var month = ('0' + (today.getMonth() + 1)).slice(-2);
+				var day = ('0' + today.getDate()).slice(-2);
+
+				var hours = ('0' + today.getHours()).slice(-2);
+				var minutes = ('0' + today.getMinutes()).slice(-2);
+				var seconds = ('0' + today.getSeconds()).slice(-2);
+
+				todayString = year + '-' + month + '-' + day;
+				var timeString = hours + ':' + minutes + ':' + seconds;
+				updateString = todayString + " " + timeString
+				logArr[8]= updateString
+				document.getElementById("ft_header").innerHTML = "<h1>FTLab Monitoring System " + updateString + "</h1>"
+
+				var apiNum = 0
+				apiTest(apiNum)
+
+			}
+			function apiTest(num) {
+
+
+				$.ajax({
+					type: 'GET',
+					url: url[num],
+					async: false,
+					success: function (res) {
+						var data = res;
+						serviceList[num] = data;
+
+						var element = document.getElementsByClassName('service_page_list')
+						element[num].innerHTML =
+							'<div class="container">' +
+							'<h2>' + title[num] + '</h2>' +
+							'<div id="server_condition">' +
+							'<span class="condition_check normal">' + '<i class="fa-solid fa-circle-check"></i>' + ' 정상' + '</span>' +
+							'</div>' +
+							'<div class="list-item" data-id"' + data.id + '">' +
+							'<div id="list-count">' +
+							'<p>' + '구동 장비 : ' + '<span class="nowCount">' + data.nowCount + '</span>' + '</p>' +
+							'<p>' + '등록된 장비 : ' + '<span class="allCount">' + data.allCount + '</span>' + '</p>' +
+							'</div>' +
+							'</div>'
+
+
+
+						const content ="[정상]"+ title[num] + " : " + data.nowCount
+						
+						num++;
+						logArr[num-1] = `${data.nowCount}`
+						if (num < 8) {
+							
+							apiTest(num)
+						}else{
+							saveFile(updateString.toString(),logArr);
+							logArr = [];
+						}
+					},
+					error: function (XMLHttpRequest, status, error) {
+
+
+						var element = document.getElementsByClassName('service_page_list')
+
+						//.service_page_list 내에 내용이 없으면
+						element[num].innerHTML =
+							'<div class="container">' +
+							'<h2>' + title[num] + '</h2>' +
+							'<div id="server_condition">' +
+							'<span class="condition_check error">' + '<i class="fa-solid fa-circle-exclamation"></i>' + ' 오류' + '</span>' +
+							'</div>' +
+							'<div id="list-count">' +
+							'<p>' + '구동 장비 : ' + '<span class="nowCount">' + ' ' + '</span>' + '</p>' +
+							'<p>' + '등록된 장비 : ' + '<span class="allCount">' + ' ' + '</span>' + '</p>' +
+							'</div>'
+
+
+							const content ="[오류]"+ title[num] 
+						
+						num++;
+						logArr[num-1] = '오류'
+						if (num < 8) {
+							
+							apiTest(num)
+						}else{
+							saveFile(updateString.toString(),logArr);
+							logArr = [];
+						}
+
+					}
+
+				});
+
+
+			}
+
+			
+
+			// function putDataList(serviceList) {
+
+			// 	var dataList = serviceList;
+			// 	var i = dataList.id
+			// 	dataList = JSON.stringify(dataList);
+
+			// 	$.ajax({
+			// 		type: 'PUT',
+			// 		data: dataList,
+			// 		url: 'https://ftlab-server-monitoring-api.azurewebsites.net/api/servers/' + i,
+			// 		async: false,
+			// 		contentType: 'application/json',
+			// 		dataType: 'text',
+			// 		success: function (data) {
+			// 			console.log('success update server: ' + i)
+			// 		},
+			// 		error: function (xhr, status, error) {
+			// 			console.log('error serverCount :' + i)
+			// 		}
+
+			// 	});
+
+			// }
+			// 기기 현황 업데이트
+
+
+			function sendEmail(inTime, inArr) {
+				inTime = new Date(inTime)
+				var hour24 = new Date(inTime.setDate(inTime.getDate() - 1))
+				var yesterdayTotal = 0
+				var todayTotal = 0
+				var titleInfo = ''
+				var data = {}
+
+				var testData = [
+					"2023-02-06 14:19:31",
+					"오류",
+					"오류",
+					"0",
+					"180",
+					"75",
+					"9",
+					"43",
+					"150"
+				]
+
+				$.ajax({
+					type: "GET",
+					url: "https://sheets.googleapis.com/v4/spreadsheets/1YiLH70FwNFobTSyV8BmEqssGPxbFyyfjDxM4fpkgIEo/values/server?key=AIzaSyDfQTldx1cShWTy8A8N_Sbo4PifkLspRzU",
+					success: function(res){
+						var dataArray = res.values
+						for(var i = 0; i < dataArray.length; i++) {
+							var result = Math.floor((new Date(dataArray[i][0])-hour24)/1000/60/10) // 10분 이내
+							if(result == 0) {
+								for(var j = 0; j < inArr.length - 1; j++) {
+									var percent = inArr[j] * 70 / 100
+									var checkData = Number(dataArray[i][j + 1]) 
+									console.log('percent ', percent)
+									console.log('checkData ', checkData)
+									if(percent > checkData){
+										titleInfo = title[j]
+										var subtraction = inArr[j] - dataArray[i][j + 1]
+										data[titleInfo] = subtraction
+									} else if(isNaN(checkData) && isNaN(percent) != isNaN(checkData)) {
+										titleInfo = title[j]
+										data[titleInfo] = '오류'
+									}
+								}
+
+
+								// for(var j = 0; j < inArr.length - 1; j++) {
+								// 	var percent = inArr[j] * 70 / 100 
+								// 	var checkData = Number(testData[j + 1])
+
+								// 	if(percent > checkData){
+								// 		titleInfo = title[j]
+								// 		var subtraction = inArr[j] - checkData
+								// 		data[titleInfo] = subtraction
+								// 	} else if(isNaN(checkData) && isNaN(percent) != isNaN(checkData)) {
+								// 		titleInfo = title[j]
+								// 		data[titleInfo] = '오류'
+								// 	}
+								// } 테스트
+
+								console.log(data)
+
+								if(Object.keys(data).length > 0) {
+									$.ajax({
+										data: data,
+										url: 'https://script.google.com/macros/s/AKfycbyelU7Styi3K5xE4nRV33OVEZh81neDDSqc7UgXhqG6Mb52DTcgeEma3-ytKaa7wilf/exec',
+										method: 'POST',
+										success: (data) => {
+											console.log(data)
+											// parsing = JSON.parse(data.data);
+										},
+										error: (xhr, err) => {
+											console.log(err);
+										}
+									});
+								} 
+							}
+						}
+					}
+				});
+			}
+
+
+	
+			function saveFile(inTime ,inArr) {
+				// $.ajax({
+				// 	type: "GET",
+				// 	url: "https://script.google.com/macros/s/AKfycbzdLjMhIGbNviAMjx5ZGcCHymPDWNNRlpAcc8s8E3wjyH3t-KpzlMIkllTwZ9p8uY1HDw/exec",
+				// 	data: {
+				// 		"Time": inTime,
+				// 		"PRO": inArr[0],
+				// 		"RDS": inArr[1],
+				// 		"CUBE": inArr[2],
+				// 		"FS301": inArr[3],
+				// 		"AQMAN": inArr[4],
+				// 		"DWM101": inArr[5],
+				// 		"RD200P": inArr[6],
+				// 		"RD200P2": inArr[7]
+				// 	},
+				// 	success: function(response){
+					
+				// 	}
+				// });
+
+				sendEmail(inTime, inArr)
+			}
+		});
+		//script finished
+	</script>
+</body>
+
+</html>
