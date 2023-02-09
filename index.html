@@ -286,6 +286,7 @@
 						
 						num++;
 						logArr[num-1] = `${data.nowCount}`
+						//logArr[num-1] = 37
 						if (num < 8) {
 							
 							apiTest(num)
@@ -364,20 +365,18 @@
 				var hour24 = new Date(inTime.setDate(inTime.getDate() - 1))
 				var yesterdayTotal = 0
 				var todayTotal = 0
-				var titleInfo = ''
-				var data = {}
-
-				var testData = [
-					"2023-02-06 14:19:31",
-					"오류",
-					"오류",
-					"0",
-					"180",
-					"75",
-					"9",
-					"43",
-					"150"
+				var data = new Object()
+				var spreadsheetsTitle = ['PRO',
+					'RDS',
+					'CUBE',
+					'FS301',
+					'AQMAN',
+					'DWM101',
+					'RD200P',
+					'RD200P2'
 				]
+
+				var data = new Object()
 
 				$.ajax({
 					type: "GET",
@@ -388,44 +387,52 @@
 							var result = Math.floor((new Date(dataArray[i][0])-hour24)/1000/60/10) // 10분 이내
 							if(result == 0) {
 								for(var j = 0; j < inArr.length - 1; j++) {
-									var percent = inArr[j] * 70 / 100
-									var checkData = Number(dataArray[i][j + 1]) 
-									console.log('percent ', percent)
-									console.log('checkData ', checkData)
+									var percent = Number(dataArray[i][j + 1]) * 70 / 100 //24시간 전 데이터의 30% 저하 값
+									var checkData = inArr[j] // 오늘 데이터 값
 									if(percent > checkData){
-										titleInfo = title[j]
-										var subtraction = inArr[j] - dataArray[i][j + 1]
-										data[titleInfo] = subtraction
-									} else if(isNaN(checkData) && isNaN(percent) != isNaN(checkData)) {
-										titleInfo = title[j]
-										data[titleInfo] = '오류'
+										var subtraction = dataArray[i][j + 1] - checkData
+										data[spreadsheetsTitle[j]] = subtraction
+									} else if(isNaN(percent) && isNaN(percent) != isNaN(checkData)) {
+										data[spreadsheetsTitle[j]] = '오류'
 									}
 								}
 
 
-								// for(var j = 0; j < inArr.length - 1; j++) {
-								// 	var percent = inArr[j] * 70 / 100 
-								// 	var checkData = Number(testData[j + 1])
+								// for(var j = 0; j < testData.length - 1; j++) {
+								// 	var percent = Number(dataArray[i][j + 1]) * 70 / 100
+								// 	console.log('percent ', percent)
+								// 	var checkData = testData[j]
 
 								// 	if(percent > checkData){
-								// 		titleInfo = title[j]
-								// 		var subtraction = inArr[j] - checkData
-								// 		data[titleInfo] = subtraction
+								// 		var subtraction = dataArray[i][j + 1] - checkData
+								// 		data[spreadsheetsTitle[j]] = subtraction
 								// 	} else if(isNaN(checkData) && isNaN(percent) != isNaN(checkData)) {
-								// 		titleInfo = title[j]
-								// 		data[titleInfo] = '오류'
+								// 		data[spreadsheetsTitle[j]] = '오류'
 								// 	}
-								// } 테스트
+								// } // testData 오늘 기준 테스트
 
-								console.log(data)
+								// for(var j = 0; j < testData.length - 1; j++) {
+								// 	var percent = Number(testData[j]) * 70 / 100
+								// 	console.log('percent ', percent)
+								// 	var checkData = inArr[j]
+
+								// 	if(percent > checkData){
+								// 		var subtraction = testData[j] - checkData
+								// 		data[spreadsheetsTitle[j]] = subtraction
+								// 	} else if(isNaN(checkData) && isNaN(percent) != isNaN(checkData)) {
+								// 		data[spreadsheetsTitle[j]] = '오류'
+								// 	}
+								// } // testData 어제 기준 테스트
+
 
 								if(Object.keys(data).length > 0) {
 									$.ajax({
 										data: data,
-										url: 'https://script.google.com/macros/s/AKfycbyelU7Styi3K5xE4nRV33OVEZh81neDDSqc7UgXhqG6Mb52DTcgeEma3-ytKaa7wilf/exec',
+										async: false,
+										url: 'https://script.google.com/macros/s/AKfycbzkpUZ5VNPn5Gff5J6i5AxnLPiY4veAQpxHO320v91f6W2KxN68KonPUchudDQ006UO/exec',
 										method: 'POST',
 										success: (data) => {
-											console.log(data)
+											//console.log(data)
 											// parsing = JSON.parse(data.data);
 										},
 										error: (xhr, err) => {
@@ -442,26 +449,24 @@
 
 	
 			function saveFile(inTime ,inArr) {
-				// $.ajax({
-				// 	type: "GET",
-				// 	url: "https://script.google.com/macros/s/AKfycbzdLjMhIGbNviAMjx5ZGcCHymPDWNNRlpAcc8s8E3wjyH3t-KpzlMIkllTwZ9p8uY1HDw/exec",
-				// 	data: {
-				// 		"Time": inTime,
-				// 		"PRO": inArr[0],
-				// 		"RDS": inArr[1],
-				// 		"CUBE": inArr[2],
-				// 		"FS301": inArr[3],
-				// 		"AQMAN": inArr[4],
-				// 		"DWM101": inArr[5],
-				// 		"RD200P": inArr[6],
-				// 		"RD200P2": inArr[7]
-				// 	},
-				// 	success: function(response){
-					
-				// 	}
-				// });
-
-				sendEmail(inTime, inArr)
+				$.ajax({
+					type: "GET",
+					url: "https://script.google.com/macros/s/AKfycbzdLjMhIGbNviAMjx5ZGcCHymPDWNNRlpAcc8s8E3wjyH3t-KpzlMIkllTwZ9p8uY1HDw/exec",
+					data: {
+						"Time": inTime,
+						"PRO": inArr[0],
+						"RDS": inArr[1],
+						"CUBE": inArr[2],
+						"FS301": inArr[3],
+						"AQMAN": inArr[4],
+						"DWM101": inArr[5],
+						"RD200P": inArr[6],
+						"RD200P2": inArr[7]
+					},
+					success: function(response){
+						sendEmail(inTime, inArr)
+					}
+				});
 			}
 		});
 		//script finished
